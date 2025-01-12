@@ -1,64 +1,82 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
-import { useAppDispatch, useAppSelector } from '../hooks/useAppDispatch';
-import { setPlayerName, resetNames } from '../store/timerSlice';
+import React from 'react';
+import { StyleSheet, View, Text, TextInput, TouchableOpacity } from 'react-native';
+import { useDispatch, useSelector } from 'react-redux';
+import { RootState } from '../store/store';
+import {
+  setPlayer1Name,
+  setPlayer2Name,
+  setTheme,
+  setAccentColor,
+  resetNames,
+} from '../store/playerSlice';
+import ColorPicker from '../components/ColorPicker';
 
 const PlayerSettings = () => {
-  const dispatch = useAppDispatch();
-  const playerNames = useAppSelector((state) => state.timer.playerNames);
-  const [name1, setName1] = useState(playerNames.player1);
-  const [name2, setName2] = useState(playerNames.player2);
+  const dispatch = useDispatch();
+  const { player1Name, player2Name, theme, accentColor } = useSelector(
+    (state: RootState) => state.player
+  );
 
-  const handleSave = () => {
-    dispatch(setPlayerName({ player: 'player1', name: name1 || 'Player 1' }));
-    dispatch(setPlayerName({ player: 'player2', name: name2 || 'Player 2' }));
+  const handleThemeToggle = () => {
+    dispatch(setTheme(theme === 'dark' ? 'light' : 'dark'));
   };
 
-  const handleReset = () => {
-    dispatch(resetNames());
-    setName1('Player 1');
-    setName2('Player 2');
+  const handleColorChange = (color: string) => {
+    dispatch(setAccentColor(color));
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Player Names</Text>
+      <Text style={styles.title}>Player Settings</Text>
       
       <View style={styles.inputContainer}>
-        <Text style={styles.label}>Player 1</Text>
+        <Text style={styles.label}>Player 1 Name</Text>
         <TextInput
           style={styles.input}
-          value={name1}
-          onChangeText={setName1}
-          placeholder="Enter name"
+          value={player1Name}
+          onChangeText={(text) => dispatch(setPlayer1Name(text))}
+          placeholder="Enter Player 1 name"
           placeholderTextColor="#666"
           maxLength={20}
         />
       </View>
 
       <View style={styles.inputContainer}>
-        <Text style={styles.label}>Player 2</Text>
+        <Text style={styles.label}>Player 2 Name</Text>
         <TextInput
           style={styles.input}
-          value={name2}
-          onChangeText={setName2}
-          placeholder="Enter name"
+          value={player2Name}
+          onChangeText={(text) => dispatch(setPlayer2Name(text))}
+          placeholder="Enter Player 2 name"
           placeholderTextColor="#666"
           maxLength={20}
         />
       </View>
 
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.button} onPress={handleSave}>
-          <Text style={styles.buttonText}>Save Names</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.button, styles.resetButton]} 
-          onPress={handleReset}
+      <View style={styles.themeContainer}>
+        <Text style={styles.label}>Theme</Text>
+        <TouchableOpacity
+          style={[styles.themeButton, theme === 'dark' && styles.activeTheme]}
+          onPress={handleThemeToggle}
         >
-          <Text style={[styles.buttonText, styles.resetButtonText]}>Reset</Text>
+          <Text style={styles.buttonText}>{theme === 'dark' ? 'Dark' : 'Light'}</Text>
         </TouchableOpacity>
       </View>
+
+      <View style={styles.colorContainer}>
+        <Text style={styles.label}>Accent Color</Text>
+        <ColorPicker
+          selectedColor={accentColor}
+          onColorChange={handleColorChange}
+        />
+      </View>
+
+      <TouchableOpacity
+        style={styles.resetButton}
+        onPress={() => dispatch(resetNames())}
+      >
+        <Text style={styles.resetButtonText}>Reset Names</Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -88,29 +106,36 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     fontSize: 16,
   },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 20,
+  themeContainer: {
+    marginBottom: 16,
   },
-  button: {
-    backgroundColor: '#007AFF',
+  themeButton: {
+    backgroundColor: '#1a1a1a',
     padding: 12,
     borderRadius: 8,
-    flex: 1,
-    marginHorizontal: 8,
     alignItems: 'center',
+  },
+  activeTheme: {
+    backgroundColor: '#007AFF',
+  },
+  colorContainer: {
+    marginBottom: 16,
   },
   buttonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: 'bold',
   },
   resetButton: {
     backgroundColor: '#4a1a1a',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 8,
   },
   resetButtonText: {
     color: '#ff4444',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 
