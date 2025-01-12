@@ -8,6 +8,22 @@
 
 A professional-grade chess timer mobile application built with React Native and Expo. Features an intuitive interface optimized for mobile devices, precise timing, and customizable settings for serious chess players.
 
+## 🎯 Try it Now!
+
+**[👉 Click here to try the app](https://snack.expo.dev/@ahmed5145/github.com-ahmed5145-chesstimerapp)**
+
+### Quick Start:
+1. **On Mobile** (Best Experience):
+   - Install "Expo Go" from your app store
+   - Open the link above
+   - Scan the QR code with your phone camera
+   - Enjoy the native app experience!
+
+2. **On Web** (Instant Preview):
+   - Just click the link above
+   - Click "Run" in the browser
+   - Start using immediately!
+
 ## ✨ Features
 
 ### 🎮 Game Controls
