@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { statsManager } from '../utils/statsUtils';
 import { formatTime } from '../utils/timeUtils';
+import { useSelector } from 'react-redux';
+import { RootState } from '../store/store';
 
 interface GameStats {
   date: string;
@@ -30,6 +32,7 @@ interface GameStats {
 
 const Stats = () => {
   const [stats, setStats] = useState<GameStats[]>([]);
+  const { player1Name, player2Name } = useSelector((state: RootState) => state.player);
   const [winRate, setWinRate] = useState({ player1: 0, player2: 0 });
   const [avgDuration, setAvgDuration] = useState(0);
   const [avgMoves, setAvgMoves] = useState({ total: 0, player1: 0, player2: 0 });
@@ -72,8 +75,8 @@ const Stats = () => {
             <View style={[styles.winRatePlayer2, { flex: winRate.player2 }]} />
           </View>
           <View style={styles.winRateLabels}>
-            <Text style={styles.label}>Player 1: {winRate.player1.toFixed(1)}%</Text>
-            <Text style={styles.label}>Player 2: {winRate.player2.toFixed(1)}%</Text>
+            <Text style={styles.label}>{player1Name}: {winRate.player1.toFixed(1)}%</Text>
+            <Text style={styles.label}>{player2Name}: {winRate.player2.toFixed(1)}%</Text>
           </View>
         </View>
 
@@ -87,16 +90,16 @@ const Stats = () => {
             <Text style={styles.statsLabel}>Avg. Moves per Game</Text>
             <Text style={styles.statsValue}>{avgMoves.total.toFixed(1)}</Text>
             <View style={styles.statsDetails}>
-              <Text style={styles.detailText}>P1: {avgMoves.player1.toFixed(1)}</Text>
-              <Text style={styles.detailText}>P2: {avgMoves.player2.toFixed(1)}</Text>
+              <Text style={styles.detailText}>{player1Name}: {avgMoves.player1.toFixed(1)}</Text>
+              <Text style={styles.detailText}>{player2Name}: {avgMoves.player2.toFixed(1)}</Text>
             </View>
           </View>
 
           <View style={styles.statsItem}>
             <Text style={styles.statsLabel}>Avg. Time per Move</Text>
             <View style={styles.statsDetails}>
-              <Text style={styles.detailText}>P1: {formatTime(avgTimePerMove.player1)}</Text>
-              <Text style={styles.detailText}>P2: {formatTime(avgTimePerMove.player2)}</Text>
+              <Text style={styles.detailText}>{player1Name}: {formatTime(avgTimePerMove.player1)}</Text>
+              <Text style={styles.detailText}>{player2Name}: {formatTime(avgTimePerMove.player2)}</Text>
             </View>
           </View>
         </View>
@@ -112,7 +115,7 @@ const Stats = () => {
                 styles.winner,
                 game.winner === 'player1' ? styles.player1Text : styles.player2Text
               ]}>
-                {game.winner === 'player1' ? 'Player 1' : 'Player 2'} won
+                {game.winner === 'player1' ? player1Name : player2Name} won
                 ({game.endReason})
               </Text>
             </View>
@@ -120,11 +123,11 @@ const Stats = () => {
               <Text style={styles.detail}>Time Control: {formatTimeControl(game.timeControl)}</Text>
               <Text style={styles.detail}>Duration: {formatTime(game.duration)}</Text>
               <Text style={styles.detail}>
-                Moves: {game.moves.total} (P1: {game.moves.player1}, P2: {game.moves.player2})
+                Moves: {game.moves.total} ({player1Name}: {game.moves.player1}, {player2Name}: {game.moves.player2})
               </Text>
               <Text style={styles.detail}>
-                Avg. Move Time: P1: {formatTime(game.moves.avgTimePerMove.player1)},
-                P2: {formatTime(game.moves.avgTimePerMove.player2)}
+                Avg. Move Time: {player1Name}: {formatTime(game.moves.avgTimePerMove.player1)},
+                {player2Name}: {formatTime(game.moves.avgTimePerMove.player2)}
               </Text>
             </View>
           </View>

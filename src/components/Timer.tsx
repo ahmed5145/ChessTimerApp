@@ -360,6 +360,9 @@ const Timer = () => {
           <TouchableOpacity
             style={styles.controlButton}
             onPress={() => {
+              if (!timer.isPaused) {
+                dispatch(pauseGame());
+              }
               setShowEndGameModal(true);
               hapticPatterns.switch();
               soundManager.play('click');

@@ -28,6 +28,16 @@ interface PlayerState {
   hapticIntensity: 'off' | 'light' | 'medium' | 'heavy';
 }
 
+interface PlayerAvatarPayload {
+  playerId: number;
+  avatar: string;
+}
+
+interface PreferredSidePayload {
+  playerId: number;
+  side: string;
+}
+
 const initialState: PlayerState = {
   player1Name: 'Player 1',
   player2Name: 'Player 2',
@@ -97,7 +107,7 @@ const playerSlice = createSlice({
       state.accentColor = action.payload;
       saveStateToStorage(state);
     },
-    setPlayerAvatar: (state, action: PayloadAction<{ playerId: 1 | 2; avatar: string }>) => {
+    setPlayerAvatar: (state, action: PayloadAction<PlayerAvatarPayload>) => {
       if (action.payload.playerId === 1) {
         state.player1Avatar = action.payload.avatar;
       } else {
@@ -105,11 +115,11 @@ const playerSlice = createSlice({
       }
       saveStateToStorage(state);
     },
-    setPreferredSide: (state, action: PayloadAction<{ playerId: 1 | 2; side: 'top' | 'bottom' }>) => {
+    setPreferredSide: (state, action: PayloadAction<PreferredSidePayload>) => {
       if (action.payload.playerId === 1) {
-        state.preferredSide1 = action.payload.side;
+        state.preferredSide1 = action.payload.side as 'top' | 'bottom';
       } else {
-        state.preferredSide2 = action.payload.side;
+        state.preferredSide2 = action.payload.side as 'top' | 'bottom';
       }
       saveStateToStorage(state);
     },
