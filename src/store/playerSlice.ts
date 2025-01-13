@@ -6,28 +6,67 @@ export interface Achievement {
   id: string;
   title: string;
   description: string;
-  icon: ImageSourcePropType;
+  icon: string;
+  reward: string;
   unlockedAt?: Date;
+  progress: number;
+  requiredProgress: number;
 }
 
-export interface PlayerStats {
-  winRate: number;
-  gamesPlayed: number;
-  avgTimePerMove: number;
-  highestWinStreak: number;
-}
-
-export interface SocialFeatures {
-  shareStats: boolean;
-  publicProfile: boolean;
-  showRating: boolean;
-}
+export const ACHIEVEMENTS = {
+  FIRST_WIN: {
+    id: 'first_win',
+    title: 'First Victory',
+    description: 'Win your first game',
+    icon: '🏆',
+    reward: 'Gold Theme Unlocked',
+    requiredProgress: 1
+  },
+  SPEED_DEMON: {
+    id: 'speed_demon',
+    title: 'Speed Demon',
+    description: 'Win 5 bullet games',
+    icon: '⚡',
+    reward: 'Lightning Animation Effect',
+    requiredProgress: 5
+  },
+  TIME_MASTER: {
+    id: 'time_master',
+    title: 'Time Master',
+    description: 'Win with less than 5 seconds remaining',
+    icon: '⏰',
+    reward: 'Special Clock Icon',
+    requiredProgress: 1
+  },
+  WINNING_STREAK: {
+    id: 'winning_streak',
+    title: 'Winning Streak',
+    description: 'Win 3 games in a row',
+    icon: '🔥',
+    reward: 'Fire Animation Effect',
+    requiredProgress: 3
+  },
+  ODDS_MASTER: {
+    id: 'odds_master',
+    title: 'Odds Master',
+    description: 'Win a game with time odds against you',
+    icon: '⚖️',
+    reward: 'Special Profile Badge',
+    requiredProgress: 1
+  }
+};
 
 export interface PlayerState {
   player1Name: string;
   player2Name: string;
-  theme: 'light' | 'dark';
+  theme: 'light' | 'dark' | 'gold';
   accentColor: string;
+  player1Avatar: string | null;
+  player2Avatar: string | null;
+  soundEnabled: boolean;
+  moveSound: string;
+  lowTimeSound: string;
+  victorySound: string;
   timeOdds: {
     enabled: boolean;
     player1: {
@@ -41,9 +80,20 @@ export interface PlayerState {
       increment: number;
     };
   };
-  socialFeatures: SocialFeatures;
+  socialFeatures: {
+    shareStats: boolean;
+    publicProfile: boolean;
+    showRating: boolean;
+  };
   achievements: Achievement[];
-  stats: PlayerStats;
+  stats: {
+    winRate: number;
+    gamesPlayed: number;
+    avgTimePerMove: number;
+    highestWinStreak: number;
+    currentWinStreak: number;
+    bulletGamesWon: number;
+  };
 }
 
 const initialState: PlayerState = {
@@ -51,6 +101,12 @@ const initialState: PlayerState = {
   player2Name: 'Player 2',
   theme: 'light',
   accentColor: '#007AFF',
+  player1Avatar: null,
+  player2Avatar: null,
+  soundEnabled: true,
+  moveSound: 'default',
+  lowTimeSound: 'default',
+  victorySound: 'default',
   timeOdds: {
     enabled: false,
     player1: {
@@ -69,13 +125,27 @@ const initialState: PlayerState = {
     publicProfile: false,
     showRating: true,
   },
-  achievements: [],
+  achievements: Object.values(ACHIEVEMENTS).map(achievement => ({
+    ...achievement,
+    progress: 0,
+    unlockedAt: undefined
+  })),
   stats: {
     winRate: 0,
     gamesPlayed: 0,
     avgTimePerMove: 0,
     highestWinStreak: 0,
+    currentWinStreak: 0,
+    bulletGamesWon: 0,
   },
+};
+
+const saveState = async (state: PlayerState) => {
+  try {
+    await AsyncStorage.setItem('@chess_timer_state', JSON.stringify(state));
+  } catch (error) {
+    console.error('Error saving state:', error);
+  }
 };
 
 const playerSlice = createSlice({
@@ -88,41 +158,110 @@ const playerSlice = createSlice({
       } else {
         state.player2Name = action.payload.name;
       }
+      saveState(state);
     },
-    setTheme: (state, action: PayloadAction<'light' | 'dark'>) => {
+    setTheme: (state, action: PayloadAction<PlayerState['theme']>) => {
       state.theme = action.payload;
+      saveState(state);
     },
     setAccentColor: (state, action: PayloadAction<string>) => {
       state.accentColor = action.payload;
+      saveState(state);
     },
-    toggleTimeOdds: (state, action: PayloadAction<boolean>) => {
-      state.timeOdds.enabled = action.payload;
-    },
-    setTimeOdds: (state, action: PayloadAction<{
-      player: 1 | 2;
-      time: { minutes: number; seconds: number; increment: number };
-    }>) => {
-      const target = action.payload.player === 1 ? state.timeOdds.player1 : state.timeOdds.player2;
-      target.minutes = action.payload.time.minutes;
-      target.seconds = action.payload.time.seconds;
-      target.increment = action.payload.time.increment;
-    },
-    toggleSocialSetting: (state, action: PayloadAction<{
-      setting: keyof SocialFeatures;
-      value: boolean;
-    }>) => {
-      state.socialFeatures[action.payload.setting] = action.payload.value;
-    },
-    updateStats: (state, action: PayloadAction<Partial<PlayerStats>>) => {
-      state.stats = { ...state.stats, ...action.payload };
-    },
-    unlockAchievement: (state, action: PayloadAction<Achievement>) => {
-      const achievement = state.achievements.find(a => a.id === action.payload.id);
-      if (achievement) {
-        achievement.unlockedAt = new Date();
+    setAvatar: (state, action: PayloadAction<{ player: 1 | 2; avatar: string }>) => {
+      if (action.payload.player === 1) {
+        state.player1Avatar = action.payload.avatar;
       } else {
-        state.achievements.push({ ...action.payload, unlockedAt: new Date() });
+        state.player2Avatar = action.payload.avatar;
       }
+      saveState(state);
+    },
+    setSoundEnabled: (state, action: PayloadAction<boolean>) => {
+      state.soundEnabled = action.payload;
+      saveState(state);
+    },
+    setSound: (state, action: PayloadAction<{ type: 'move' | 'lowTime' | 'victory'; sound: string }>) => {
+      switch (action.payload.type) {
+        case 'move':
+          state.moveSound = action.payload.sound;
+          break;
+        case 'lowTime':
+          state.lowTimeSound = action.payload.sound;
+          break;
+        case 'victory':
+          state.victorySound = action.payload.sound;
+          break;
+      }
+      saveState(state);
+    },
+    updateAchievementProgress: (state, action: PayloadAction<{ achievementId: string; progress: number }>) => {
+      const achievement = state.achievements.find(a => a.id === action.payload.achievementId);
+      if (achievement) {
+        achievement.progress = action.payload.progress;
+        if (achievement.progress >= achievement.requiredProgress && !achievement.unlockedAt) {
+          achievement.unlockedAt = new Date();
+          // Handle achievement rewards here
+          if (achievement.id === 'first_win') {
+            state.theme = 'gold';
+          }
+        }
+        saveState(state);
+      }
+    },
+    updateStats: (state, action: PayloadAction<{
+      isWin: boolean;
+      isBullet: boolean;
+      avgMoveTime: number;
+    }>) => {
+      const { isWin, isBullet, avgMoveTime } = action.payload;
+      state.stats.gamesPlayed++;
+      
+      if (isWin) {
+        state.stats.currentWinStreak++;
+        state.stats.highestWinStreak = Math.max(state.stats.highestWinStreak, state.stats.currentWinStreak);
+        if (isBullet) {
+          state.stats.bulletGamesWon++;
+        }
+      } else {
+        state.stats.currentWinStreak = 0;
+      }
+
+      state.stats.winRate = (state.stats.bulletGamesWon / state.stats.gamesPlayed) * 100;
+      state.stats.avgTimePerMove = avgMoveTime;
+      
+      // Check achievements
+      if (isWin) {
+        if (state.stats.gamesPlayed === 1) {
+          const achievement = state.achievements.find(a => a.id === 'first_win');
+          if (achievement) {
+            achievement.progress = 1;
+            if (!achievement.unlockedAt) {
+              achievement.unlockedAt = new Date();
+              state.theme = 'gold';
+            }
+          }
+        }
+        if (state.stats.currentWinStreak >= 3) {
+          const achievement = state.achievements.find(a => a.id === 'winning_streak');
+          if (achievement) {
+            achievement.progress = state.stats.currentWinStreak;
+            if (achievement.progress >= achievement.requiredProgress && !achievement.unlockedAt) {
+              achievement.unlockedAt = new Date();
+            }
+          }
+        }
+        if (state.stats.bulletGamesWon >= 5) {
+          const achievement = state.achievements.find(a => a.id === 'speed_demon');
+          if (achievement) {
+            achievement.progress = state.stats.bulletGamesWon;
+            if (achievement.progress >= achievement.requiredProgress && !achievement.unlockedAt) {
+              achievement.unlockedAt = new Date();
+            }
+          }
+        }
+      }
+      
+      saveState(state);
     },
   },
 });
@@ -131,11 +270,11 @@ export const {
   setPlayerName,
   setTheme,
   setAccentColor,
-  toggleTimeOdds,
-  setTimeOdds,
-  toggleSocialSetting,
+  setAvatar,
+  setSoundEnabled,
+  setSound,
+  updateAchievementProgress,
   updateStats,
-  unlockAchievement,
 } = playerSlice.actions;
 
 export default playerSlice.reducer; 
