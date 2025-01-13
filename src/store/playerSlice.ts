@@ -1,168 +1,141 @@
-import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ImageSourcePropType } from 'react-native';
 
-interface PlayerStats {
-  gamesPlayed: number;
-  averageTimePerMove: number;
-  favoriteTimeControl: string;
+export interface Achievement {
+  id: string;
+  title: string;
+  description: string;
+  icon: ImageSourcePropType;
+  unlockedAt?: Date;
 }
 
-interface PlayerState {
+export interface PlayerStats {
+  winRate: number;
+  gamesPlayed: number;
+  avgTimePerMove: number;
+  highestWinStreak: number;
+}
+
+export interface SocialFeatures {
+  shareStats: boolean;
+  publicProfile: boolean;
+  showRating: boolean;
+}
+
+export interface PlayerState {
   player1Name: string;
   player2Name: string;
-  theme: 'dark' | 'light' | 'minimalist' | 'colorblind' | 'classic';
+  theme: 'light' | 'dark';
   accentColor: string;
-  player1Avatar: string | null;
-  player2Avatar: string | null;
-  player1Stats: PlayerStats;
-  player2Stats: PlayerStats;
-  preferredSide1: 'top' | 'bottom';
-  preferredSide2: 'top' | 'bottom';
-  customSoundEffects: {
-    player1Move: string;
-    player2Move: string;
-    lowTime: string;
-    gameEnd: string;
+  timeOdds: {
+    enabled: boolean;
+    player1: {
+      minutes: number;
+      seconds: number;
+      increment: number;
+    };
+    player2: {
+      minutes: number;
+      seconds: number;
+      increment: number;
+    };
   };
-  animationSpeed: 'slow' | 'normal' | 'fast';
-  hapticIntensity: 'off' | 'light' | 'medium' | 'heavy';
-}
-
-interface PlayerAvatarPayload {
-  playerId: number;
-  avatar: string;
-}
-
-interface PreferredSidePayload {
-  playerId: number;
-  side: string;
+  socialFeatures: SocialFeatures;
+  achievements: Achievement[];
+  stats: PlayerStats;
 }
 
 const initialState: PlayerState = {
   player1Name: 'Player 1',
   player2Name: 'Player 2',
-  theme: 'dark',
+  theme: 'light',
   accentColor: '#007AFF',
-  player1Avatar: null,
-  player2Avatar: null,
-  player1Stats: {
+  timeOdds: {
+    enabled: false,
+    player1: {
+      minutes: 5,
+      seconds: 0,
+      increment: 3,
+    },
+    player2: {
+      minutes: 5,
+      seconds: 0,
+      increment: 3,
+    },
+  },
+  socialFeatures: {
+    shareStats: true,
+    publicProfile: false,
+    showRating: true,
+  },
+  achievements: [],
+  stats: {
+    winRate: 0,
     gamesPlayed: 0,
-    averageTimePerMove: 0,
-    favoriteTimeControl: '5+3',
+    avgTimePerMove: 0,
+    highestWinStreak: 0,
   },
-  player2Stats: {
-    gamesPlayed: 0,
-    averageTimePerMove: 0,
-    favoriteTimeControl: '5+3',
-  },
-  preferredSide1: 'bottom',
-  preferredSide2: 'top',
-  customSoundEffects: {
-    player1Move: 'default',
-    player2Move: 'default',
-    lowTime: 'default',
-    gameEnd: 'default',
-  },
-  animationSpeed: 'normal',
-  hapticIntensity: 'medium',
 };
-
-// Helper function to save state to AsyncStorage
-const saveStateToStorage = async (state: PlayerState) => {
-  try {
-    await AsyncStorage.setItem('@chess_timer_settings', JSON.stringify(state));
-  } catch (error) {
-    console.error('Error saving settings:', error);
-  }
-};
-
-export const loadSettings = createAsyncThunk(
-  'player/loadSettings',
-  async () => {
-    const savedSettings = await AsyncStorage.getItem('@chess_timer_settings');
-    if (savedSettings) {
-      return JSON.parse(savedSettings);
-    }
-    return null;
-  }
-);
 
 const playerSlice = createSlice({
   name: 'player',
   initialState,
   reducers: {
-    setPlayer1Name: (state, action: PayloadAction<string>) => {
-      state.player1Name = action.payload || 'Player 1';
-      saveStateToStorage(state);
+    setPlayerName: (state, action: PayloadAction<{ player: 1 | 2; name: string }>) => {
+      if (action.payload.player === 1) {
+        state.player1Name = action.payload.name;
+      } else {
+        state.player2Name = action.payload.name;
+      }
     },
-    setPlayer2Name: (state, action: PayloadAction<string>) => {
-      state.player2Name = action.payload || 'Player 2';
-      saveStateToStorage(state);
-    },
-    setTheme: (state, action: PayloadAction<PlayerState['theme']>) => {
+    setTheme: (state, action: PayloadAction<'light' | 'dark'>) => {
       state.theme = action.payload;
-      saveStateToStorage(state);
     },
     setAccentColor: (state, action: PayloadAction<string>) => {
       state.accentColor = action.payload;
-      saveStateToStorage(state);
     },
-    setPlayerAvatar: (state, action: PayloadAction<PlayerAvatarPayload>) => {
-      if (action.payload.playerId === 1) {
-        state.player1Avatar = action.payload.avatar;
+    toggleTimeOdds: (state, action: PayloadAction<boolean>) => {
+      state.timeOdds.enabled = action.payload;
+    },
+    setTimeOdds: (state, action: PayloadAction<{
+      player: 1 | 2;
+      time: { minutes: number; seconds: number; increment: number };
+    }>) => {
+      const target = action.payload.player === 1 ? state.timeOdds.player1 : state.timeOdds.player2;
+      target.minutes = action.payload.time.minutes;
+      target.seconds = action.payload.time.seconds;
+      target.increment = action.payload.time.increment;
+    },
+    toggleSocialSetting: (state, action: PayloadAction<{
+      setting: keyof SocialFeatures;
+      value: boolean;
+    }>) => {
+      state.socialFeatures[action.payload.setting] = action.payload.value;
+    },
+    updateStats: (state, action: PayloadAction<Partial<PlayerStats>>) => {
+      state.stats = { ...state.stats, ...action.payload };
+    },
+    unlockAchievement: (state, action: PayloadAction<Achievement>) => {
+      const achievement = state.achievements.find(a => a.id === action.payload.id);
+      if (achievement) {
+        achievement.unlockedAt = new Date();
       } else {
-        state.player2Avatar = action.payload.avatar;
+        state.achievements.push({ ...action.payload, unlockedAt: new Date() });
       }
-      saveStateToStorage(state);
     },
-    setPreferredSide: (state, action: PayloadAction<PreferredSidePayload>) => {
-      if (action.payload.playerId === 1) {
-        state.preferredSide1 = action.payload.side as 'top' | 'bottom';
-      } else {
-        state.preferredSide2 = action.payload.side as 'top' | 'bottom';
-      }
-      saveStateToStorage(state);
-    },
-    setCustomSound: (state, action: PayloadAction<{ type: keyof PlayerState['customSoundEffects']; sound: string }>) => {
-      state.customSoundEffects[action.payload.type] = action.payload.sound;
-      saveStateToStorage(state);
-    },
-    setAnimationSpeed: (state, action: PayloadAction<PlayerState['animationSpeed']>) => {
-      state.animationSpeed = action.payload;
-      saveStateToStorage(state);
-    },
-    setHapticIntensity: (state, action: PayloadAction<PlayerState['hapticIntensity']>) => {
-      state.hapticIntensity = action.payload;
-      saveStateToStorage(state);
-    },
-    loadSavedSettings: (state, action: PayloadAction<PlayerState>) => {
-      return { ...action.payload };
-    },
-    resetSettings: (state) => {
-      return { ...initialState };
-    },
-  },
-  extraReducers: (builder) => {
-    builder.addCase(loadSettings.fulfilled, (state, action) => {
-      if (action.payload) {
-        return { ...action.payload };
-      }
-    });
   },
 });
 
 export const {
-  setPlayer1Name,
-  setPlayer2Name,
+  setPlayerName,
   setTheme,
   setAccentColor,
-  setPlayerAvatar,
-  setPreferredSide,
-  setCustomSound,
-  setAnimationSpeed,
-  setHapticIntensity,
-  loadSavedSettings,
-  resetSettings,
+  toggleTimeOdds,
+  setTimeOdds,
+  toggleSocialSetting,
+  updateStats,
+  unlockAchievement,
 } = playerSlice.actions;
 
 export default playerSlice.reducer; 

@@ -24,7 +24,7 @@ import {
 } from '../store/timerSlice';
 import { soundManager } from '../utils/soundUtils';
 import { statsManager } from '../utils/statsUtils';
-import { hapticPatterns } from '../utils/hapticPatterns.ts';
+import { hapticPatterns } from '../utils/hapticPatterns';
 import { formatTime } from '../utils/timeUtils';
 
 type TimerScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Timer'>;

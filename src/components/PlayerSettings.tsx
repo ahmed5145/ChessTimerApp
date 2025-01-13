@@ -1,45 +1,22 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { StyleSheet, View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
-import { RootState, AppDispatch } from '../store/store';
-import {
-  setPlayer1Name,
-  setPlayer2Name,
-  setTheme,
-  setAccentColor,
-  setPlayerAvatar,
-  setPreferredSide,
-  setCustomSound,
-  setAnimationSpeed,
-  setHapticIntensity,
-  loadSettings,
-  resetSettings,
-} from '../store/playerSlice';
+import { RootState } from '../store/store';
+import { setPlayerName, setTheme, setAccentColor } from '../store/playerSlice';
 import ColorPicker from './ColorPicker';
-import AvatarPicker from './AvatarPicker';
-import SoundPicker from './SoundPicker';
-import ThemePicker from './ThemePicker';
-import SettingsSlider from './SettingsSlider';
 
 const PlayerSettings = () => {
-  const dispatch = useDispatch<AppDispatch>();
+  const dispatch = useDispatch();
   const {
     player1Name,
     player2Name,
     theme,
     accentColor,
-    player1Avatar,
-    player2Avatar,
-    customSoundEffects,
-    animationSpeed,
-    hapticIntensity,
-    preferredSide1,
-    preferredSide2,
   } = useSelector((state: RootState) => state.player);
 
-  useEffect(() => {
-    dispatch(loadSettings());
-  }, [dispatch]);
+  const handleNameChange = (player: 1 | 2, name: string) => {
+    dispatch(setPlayerName({ player, name }));
+  };
 
   return (
     <ScrollView style={styles.container}>
@@ -50,22 +27,11 @@ const PlayerSettings = () => {
         <TextInput
           style={styles.input}
           value={player1Name}
-          onChangeText={(text) => dispatch(setPlayer1Name(text))}
+          onChangeText={(text) => handleNameChange(1, text)}
           placeholder="Enter Player 1 name"
           placeholderTextColor="#666"
           maxLength={20}
         />
-        <AvatarPicker
-          currentAvatar={player1Avatar}
-          onAvatarSelect={(uri) => dispatch(setPlayerAvatar({ playerId: 1, avatar: uri }))}
-          label="Player 1 Avatar"
-        />
-        <TouchableOpacity
-          style={styles.sideButton}
-          onPress={() => dispatch(setPreferredSide({ playerId: 1, side: preferredSide1 === 'top' ? 'bottom' : 'top' }))}
-        >
-          <Text style={styles.buttonText}>Preferred Side: {preferredSide1}</Text>
-        </TouchableOpacity>
       </View>
 
       <View style={styles.section}>
@@ -73,82 +39,32 @@ const PlayerSettings = () => {
         <TextInput
           style={styles.input}
           value={player2Name}
-          onChangeText={(text) => dispatch(setPlayer2Name(text))}
+          onChangeText={(text) => handleNameChange(2, text)}
           placeholder="Enter Player 2 name"
           placeholderTextColor="#666"
           maxLength={20}
         />
-        <AvatarPicker
-          currentAvatar={player2Avatar}
-          onAvatarSelect={(uri) => dispatch(setPlayerAvatar({ playerId: 2, avatar: uri }))}
-          label="Player 2 Avatar"
-        />
-        <TouchableOpacity
-          style={styles.sideButton}
-          onPress={() => dispatch(setPreferredSide({ playerId: 2, side: preferredSide2 === 'top' ? 'bottom' : 'top' }))}
-        >
-          <Text style={styles.buttonText}>Preferred Side: {preferredSide2}</Text>
-        </TouchableOpacity>
       </View>
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Appearance</Text>
-        <ThemePicker
-          currentTheme={theme}
-          onThemeSelect={(newTheme) => dispatch(setTheme(newTheme))}
-        />
-        <ColorPicker
-          selectedColor={accentColor}
-          onColorChange={(color) => dispatch(setAccentColor(color))}
-        />
+        <View style={styles.themeContainer}>
+          <Text style={styles.label}>Theme</Text>
+          <TouchableOpacity
+            style={styles.themeButton}
+            onPress={() => dispatch(setTheme(theme === 'light' ? 'dark' : 'light'))}
+          >
+            <Text style={styles.buttonText}>{theme === 'light' ? 'Switch to Dark' : 'Switch to Light'}</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.colorContainer}>
+          <Text style={styles.label}>Accent Color</Text>
+          <ColorPicker
+            selectedColor={accentColor}
+            onColorChange={(color) => dispatch(setAccentColor(color))}
+          />
+        </View>
       </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Sound Effects</Text>
-        <SoundPicker
-          currentSound={customSoundEffects.player1Move}
-          onSoundSelect={(sound) => dispatch(setCustomSound({ type: 'player1Move', sound }))}
-          label="Player 1 Move Sound"
-        />
-        <SoundPicker
-          currentSound={customSoundEffects.player2Move}
-          onSoundSelect={(sound) => dispatch(setCustomSound({ type: 'player2Move', sound }))}
-          label="Player 2 Move Sound"
-        />
-        <SoundPicker
-          currentSound={customSoundEffects.lowTime}
-          onSoundSelect={(sound) => dispatch(setCustomSound({ type: 'lowTime', sound }))}
-          label="Low Time Warning"
-        />
-        <SoundPicker
-          currentSound={customSoundEffects.gameEnd}
-          onSoundSelect={(sound) => dispatch(setCustomSound({ type: 'gameEnd', sound }))}
-          label="Game End Sound"
-        />
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Animation & Feedback</Text>
-        <SettingsSlider
-          label="Animation Speed"
-          value={animationSpeed}
-          options={['slow', 'normal', 'fast']}
-          onValueChange={(value) => dispatch(setAnimationSpeed(value as any))}
-        />
-        <SettingsSlider
-          label="Haptic Feedback"
-          value={hapticIntensity}
-          options={['off', 'light', 'medium', 'heavy']}
-          onValueChange={(value) => dispatch(setHapticIntensity(value as any))}
-        />
-      </View>
-
-      <TouchableOpacity
-        style={styles.resetButton}
-        onPress={() => dispatch(resetSettings())}
-      >
-        <Text style={styles.resetButtonText}>Reset All Settings</Text>
-      </TouchableOpacity>
     </ScrollView>
   );
 };
@@ -156,13 +72,11 @@ const PlayerSettings = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
     padding: 16,
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#fff',
     marginBottom: 20,
   },
   section: {
@@ -171,40 +85,35 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#fff',
     marginBottom: 16,
   },
   input: {
-    backgroundColor: '#1a1a1a',
-    color: '#fff',
+    backgroundColor: '#f5f5f5',
     padding: 12,
     borderRadius: 8,
     fontSize: 16,
     marginBottom: 12,
   },
-  sideButton: {
-    backgroundColor: '#1a1a1a',
+  themeContainer: {
+    marginBottom: 16,
+  },
+  colorContainer: {
+    marginBottom: 16,
+  },
+  label: {
+    fontSize: 16,
+    marginBottom: 8,
+  },
+  themeButton: {
+    backgroundColor: '#007AFF',
     padding: 12,
     borderRadius: 8,
     alignItems: 'center',
-    marginTop: 8,
   },
   buttonText: {
     color: '#fff',
     fontSize: 16,
-  },
-  resetButton: {
-    backgroundColor: '#4a1a1a',
-    padding: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 8,
-    marginBottom: 32,
-  },
-  resetButtonText: {
-    color: '#ff4444',
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '600',
   },
 });
 
